@@ -1,7 +1,7 @@
+import { ButtonStyle, CDN, ComponentType } from "lilybird";
 import { extname, basename } from "node:path";
 
-import type { User } from "lilybird";
-import { ButtonStyle, CDN, ComponentType, type Client, type Message } from "lilybird";
+import type { User, Client, Message } from "lilybird";
 
 // https://github.com/xHyroM/bun-discord-bot/blob/6cfaa99d50c5f047faff978a9bc36207c05950e2/src/listeners/message_create.tsx#L13C1-L14C170
 const GITHUB_LINE_URL_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:github)\.com\/(?<repo>[a-zA-Z0-9-_]+\/[A-Za-z0-9_.-]+)\/blob\/(?<path>.+?)#L(?<first_line_number>\d+)[-~]?L?(?<second_line_number>\d*)/i;

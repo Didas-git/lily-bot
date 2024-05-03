@@ -1,7 +1,8 @@
 import { ApplicationCommandOptionType, createClient, Intents, InteractionCallbackType, InteractionType } from "lilybird";
-import { handleGithubURLInMessage } from "./github.js";
+import { handleAnimeSearchAutocomplete, handleAnimeSearchInteraction, handleAnimeSearchRelationsButton } from "./commands/anime.js";
+import { handleMDNAutocomplete, handleMDNInteraction } from "./commands/mdn.js";
+import { handleGithubURLInMessage } from "./commands/github.js";
 import { CommandManager } from "./handler.js";
-import { handleMDNAutocomplete, handleMDNInteraction } from "./mdn.js";
 
 const handler = new CommandManager();
 
@@ -35,6 +36,20 @@ handler.addCommand({
     ]
 }, async (client, interaction) => handleMDNInteraction(client, interaction));
 
+handler.addCommand({
+    name: "anime",
+    description: "Search for an anime",
+    options: [
+        {
+            type: ApplicationCommandOptionType.NUMBER,
+            name: "query",
+            description: "The anime to search",
+            required: true,
+            autocomplete: true
+        }
+    ]
+}, async (client, interaction) => handleAnimeSearchInteraction(client, interaction));
+
 await createClient({
     token: process.env.TOKEN,
     intents: [
@@ -44,9 +59,10 @@ await createClient({
         Intents.GUILDS
     ],
     setup: async (client) => {
-        await handler.loadGlobal(client);
         console.log(`Logged in as: ${client.user.username} (${client.user.id})`);
+        await handler.loadGlobal(client);
     },
+    attachDebugListener: true,
     listeners: {
         messageCreate: async (client, payload) => {
             await handleGithubURLInMessage(client, payload);
@@ -55,11 +71,22 @@ await createClient({
             if (!("guild_id" in payload)) return;
 
             if (payload.type === InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE) {
-                await handleMDNAutocomplete(client, payload);
-                return;
-            }
+                switch (payload.data.name) {
+                    case "mdn": {
+                        await handleMDNAutocomplete(client, payload);
+                        break;
+                    }
+                    case "anime": {
+                        await handleAnimeSearchAutocomplete(client, payload);
+                        break;
+                    }
+                }
 
-            if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
+                return;
+            } else if (payload.type === InteractionType.MESSAGE_COMPONENT) {
+                await handleAnimeSearchRelationsButton(client, payload);
+                return;
+            } else if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
 
             await handler.commands[payload.data.name](client, payload);
         }

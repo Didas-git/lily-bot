@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { InteractionCallbackType, MessageFlags, type Client, type Interaction } from "lilybird";
+import { InteractionCallbackType, MessageFlags } from "lilybird";
+
+import type { Client, Interaction } from "lilybird";
 
 interface GoogleAPIResponse {
     kind: string;
