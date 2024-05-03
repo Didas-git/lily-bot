@@ -110,7 +110,7 @@ export async function handleMDNInteraction(client: Client, interaction: Interact
     await client.rest.createInteractionResponse(interaction.id, interaction.token, {
         type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-            content: typeof userId === "string" ? `<@${userId}> learn how to fucking google` : "",
+            content: typeof userId === "string" ? `<@${userId}>` : "",
             embeds: [
                 {
                     title: tags["og:title"],
