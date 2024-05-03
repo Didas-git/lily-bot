@@ -1,8 +1,8 @@
 import { ComponentType, InteractionCallbackType, MessageFlags } from "lilybird";
 import { anilist } from "anilist";
 
+import type { IStaffEdge, Media, MediaType } from "anilist";
 import type { Embed, Client, Interaction } from "lilybird";
-import type { Media, MediaType, StaffName } from "anilist";
 
 export const FullMediaQuery = anilist.query.media()
     .withSiteUrl()
@@ -73,9 +73,9 @@ export function animeAndMangaEmbed(data: Media): Embed.Structure {
     };
 }
 
-const localAnilistCache = new Map<number, ReturnType<Awaited<typeof FullMediaQuery["fetch"]>>>();
+const localAnilistCache = new Map<number, Media>();
 
-async function getAnilistData(mediaId: number, type: MediaType): ReturnType<Awaited<typeof FullMediaQuery["fetch"]>> {
+async function getAnilistData(mediaId: number, type: MediaType): Promise<Media> {
     const cached = localAnilistCache.get(mediaId);
     if (typeof cached !== "undefined") return cached;
 
@@ -85,7 +85,7 @@ async function getAnilistData(mediaId: number, type: MediaType): ReturnType<Awai
     });
 
     const data = FullMediaQuery.fetch();
-    localAnilistCache.set(mediaId, data);
+    localAnilistCache.set(mediaId, <never>data);
 
     return data;
 }
@@ -128,14 +128,12 @@ export async function handleAnimeSearchAutocomplete(client: Client, interaction:
     }
 }
 
-function getCreator(edges: Array<{
-    role: string | null,
-    node: {
-        name: StaffName | null
-    } }
->): string | null {
+function getCreator(edges: Array<IStaffEdge>): string | null {
     for (let i = 0, { length } = edges; i < length; i++) {
-        const { role, node: { name } } = edges[i];
+        const edge = edges[i];
+        if (edge.node == null) continue;
+        const { role, node: { name } } = edge;
+
         if (role?.includes("Creator")) return name?.full ?? "";
     }
 
@@ -159,7 +157,7 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
         const data = await getAnilistData(animeId, "ANIME");
 
         const embed = animeAndMangaEmbed(data);
-        const creator = getCreator(data.staff.edges);
+        const creator = getCreator(data.staff?.edges ?? []);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (creator !== null && creator.length > 0) embed.fields = [ { name: "Author", value: `\`${creator}\`` }, ...embed.fields!];
 
@@ -173,11 +171,11 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
                             type: ComponentType.StringSelect,
                             custom_id: "anime_search_relations",
                             placeholder: "View Relations",
-                            options: data.relations.edges.map((edge) => ({
+                            options: data.relations?.edges?.map((edge) => ({
                                 label: `${edge.relationType?.replaceAll("_", " ")} | ${
-                                    edge.node.title?.romaji && edge.node.title.romaji.length > 70 ? `${edge.node.title.romaji.substring(0, 67)}...` : edge.node.title?.romaji
-                                } (${edge.node.type})`,
-                                value: `${edge.node.id}|${edge.node.type}|${interaction.member.user?.id}`
+                                    edge.node?.title?.romaji && edge.node.title.romaji.length > 70 ? `${edge.node.title.romaji.substring(0, 67)}...` : edge.node?.title?.romaji
+                                } (${edge.node?.type})`,
+                                value: `${edge.node?.id}|${edge.node?.type}|${interaction.member.user?.id}`
                             }))
                         }
                     ]
@@ -192,6 +190,8 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
 export async function handleAnimeSearchRelationsButton(client: Client, interaction: Interaction.GuildMessageComponentInteractionStructure): Promise<void> {
     if (interaction.data.custom_id !== "anime_search_relations") return;
     if (typeof interaction.data.values === "undefined") return;
+
+    const [id, type, authorId]: [string, MediaType, string] = <never>interaction.data.values[0].split("|");
     if (interaction.member.user?.id !== authorId) {
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -199,14 +199,12 @@ export async function handleAnimeSearchRelationsButton(client: Client, interacti
         });
         return;
     }
-    
-    const [id, type, authorId]: [string, MediaType, string] = <never>interaction.data.values[0].split("|");
-    
+
     try {
         const data = await getAnilistData(+id, type);
 
         const embed = animeAndMangaEmbed(data);
-        const creator = getCreator(data.staff.edges);
+        const creator = getCreator(data.staff?.edges ?? []);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (creator !== null && creator.length > 0) embed.fields = [ { name: "Author", value: `\`${creator}\`` }, ...embed.fields!];
 
@@ -222,11 +220,11 @@ export async function handleAnimeSearchRelationsButton(client: Client, interacti
                                 type: ComponentType.StringSelect,
                                 custom_id: "anime_search_relations",
                                 placeholder: "View Relations",
-                                options: data.relations.edges.map((edge) => ({
+                                options: data.relations?.edges?.map((edge) => ({
                                     label: `${edge.relationType?.replaceAll("_", " ")} | ${
-                                        edge.node.title?.romaji && edge.node.title.romaji.length > 70 ? `${edge.node.title.romaji.substring(0, 67)}...` : edge.node.title?.romaji
-                                    } (${edge.node.type})`,
-                                    value: `${edge.node.id}|${edge.node.type}|${interaction.member.user?.id}`
+                                        edge.node?.title?.romaji && edge.node.title.romaji.length > 70 ? `${edge.node.title.romaji.substring(0, 67)}...` : edge.node?.title?.romaji
+                                    } (${edge.node?.type})`,
+                                    value: `${edge.node?.id}|${edge.node?.type}|${interaction.member.user?.id}`
                                 }))
                             }
                         ]
