@@ -62,7 +62,6 @@ await createClient({
         console.log(`Logged in as: ${client.user.username} (${client.user.id})`);
         await handler.loadGlobal(client);
     },
-    attachDebugListener: true,
     listeners: {
         messageCreate: async (client, payload) => {
             await handleGithubURLInMessage(client, payload);

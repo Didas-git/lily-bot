@@ -30,6 +30,7 @@
         "skipLibCheck": true,
         "removeComments": true,
         "preserveConstEnums": true,
+        "noErrorTruncation": true,
         "types": [
             "bun-types",
             "./globals"

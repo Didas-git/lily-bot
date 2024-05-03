@@ -1,10 +1,8 @@
 import { ButtonStyle, CDN, ComponentType } from "lilybird";
-import { extname, basename } from "node:path";
 
 import type { User, Client, Message } from "lilybird";
 
-// https://github.com/xHyroM/bun-discord-bot/blob/6cfaa99d50c5f047faff978a9bc36207c05950e2/src/listeners/message_create.tsx#L13C1-L14C170
-const GITHUB_LINE_URL_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:github)\.com\/(?<repo>[a-zA-Z0-9-_]+\/[A-Za-z0-9_.-]+)\/blob\/(?<path>.+?)#L(?<first_line_number>\d+)[-~]?L?(?<second_line_number>\d*)/i;
+const GITHUB_LINE_URL_REGEX = /https?:\/\/github\.com\/(?<repository>[a-zA-Z0-9_-]+\/[A-Za-z0-9_.-]+)\/blob\/(?<path>.+?)#L(?<first_line>\d+)[-~]?L?(?<final_line>\d*)/;
 
 function getStartingPad(line: string): number {
     let i = 0;
@@ -25,14 +23,15 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
     const { groups } = match;
     if (typeof groups === "undefined") return;
 
-    const { repo, path } = groups;
-    let extension = extname(path).slice(1);
+    const { repository, path, first_line, final_line } = groups;
+    const extensionStart = path.lastIndexOf(".") + 1;
+    let extension = path.slice(extensionStart);
     if (extension === "zig") extension = "rs";
 
-    const firstLineNumber = parseInt(groups.first_line_number);
-    const secondLineNumber = parseInt(groups.second_line_number) || firstLineNumber;
+    const firstLineNumber = parseInt(first_line);
+    const finalLineNumber = final_line.length > 0 ? parseInt(final_line) : firstLineNumber;
 
-    const contentUrl = `https://raw.githubusercontent.com/${repo}/${path}`;
+    const contentUrl = `https://raw.githubusercontent.com/${repository}/${path}`;
     const response = await fetch(contentUrl);
     if (!response.ok) return;
 
@@ -41,7 +40,7 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
 
     let text = "";
 
-    const length = secondLineNumber > lines.length ? lines.length : secondLineNumber + 1;
+    const length = finalLineNumber > lines.length ? lines.length : finalLineNumber + 1;
     const initialIndentation = getStartingPad(lines[firstLineNumber - 1]);
     for (let i = firstLineNumber - 1; i < length; i++) {
         const line = lines[i].slice(initialIndentation);
@@ -55,6 +54,9 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
     const slicedText = text.slice(0, indexToSliceAt + 1);
     const extraCharacters = text.length - slicedText.length;
 
+    const fileStart = path.lastIndexOf("/") + 1;
+    const fileName = path.slice(fileStart);
+
     await client.rest.createMessage(message.channel_id, {
         embeds: [
             {
@@ -65,13 +67,13 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
                         ? CDN.defaultUserAvatarURL(calculateAvatarIndex(message.author))
                         : CDN.userAvatarURL(message.author.id, message.author.avatar)
                 },
-                title: `__**${basename(path)}**__ - Line: *${firstLineNumber !== secondLineNumber ? `${firstLineNumber} - ${secondLineNumber}` : firstLineNumber}*`,
+                title: `__**${fileName}**__ - Line: *${firstLineNumber !== finalLineNumber ? `${firstLineNumber} - ${finalLineNumber}` : firstLineNumber}*`,
                 description: `\`\`\`${extension}\n${extraCharacters > 0 ? `${slicedText}\n(more ${extraCharacters})\n` : slicedText}\`\`\``
             }
         ],
         // In case you want to use content instead of embed remember to change the 4096 in the descriptionLimit to 1900
         // (base 2000 - 100 reserved for the path+lines at the beginning)
-        // content: `__**${basename(path)}**__ - Line: *${
+        // content: `__**${fileName}**__ - Line: *${
         //     firstLineNumber !== secondLineNumber ? `${firstLineNumber} - ${secondLineNumber}` : firstLineNumber
         // }*\n\`\`\`${extension}\n${
         //     extraCharacters > 0 ? `${slicedText}(more ${extraCharacters})\n` : slicedText
@@ -83,8 +85,8 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
                     {
                         type: ComponentType.Button,
                         style: ButtonStyle.Link,
-                        url: `https://github.com/${repo}/blob/${path}#L${firstLineNumber === secondLineNumber ? firstLineNumber : `${firstLineNumber}-L${secondLineNumber}`}`,
-                        label: repo
+                        url: `https://github.com/${repository}/blob/${path}#L${firstLineNumber === finalLineNumber ? firstLineNumber : `${firstLineNumber}-L${finalLineNumber}`}`,
+                        label: repository
                     }
                 ]
             }
