@@ -1,0 +1,15 @@
+{
+    "cSpell.words": [
+        "lilybird"
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "eslint.experimental.useFlatConfig": true,
+    "eslint.format.enable": true,
+    "eslint.enable": true,
+    "[typescript]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    }
+}

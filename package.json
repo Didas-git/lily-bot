@@ -1,0 +1,33 @@
+{
+  "private": true,
+  "author": "DidaS",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Didas-git/lily-bot"
+  },
+  "homepage": "https://github.com/Didas-git/lily-bot#readme",
+  "bugs": {
+    "url": "https://github.com/Didas-git/lily-bot/issues"
+  },
+  "files": [
+    "./dist"
+  ],
+  "scripts": {
+    "check": "eslint .",
+    "dev": "bun src/index.ts",
+    "build": "rm -rf dist && tsc && cp .npmignore dist/"
+  },
+  "dependencies": {
+    "lilybird": "link:lilybird"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^1.8.0",
+    "bun-types": "^1.1.6",
+    "eslint": "^9.1.1",
+    "eslint-plugin-jsdoc": "^48.2.3",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.8.0"
+  }
+}

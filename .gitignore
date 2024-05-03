@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+lily-cache/
+.astro/
+.env.*
+.DS_Store
+.obsidian
+.dccache
+
+packages/docs/diagrams/*.svg
