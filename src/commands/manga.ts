@@ -1,5 +1,5 @@
-import { ComponentType, InteractionCallbackType, MessageFlags } from "lilybird";
 import { MediaQuery, PageQuery, anilistEmbed, getAnilistData } from "../utils/anilist.js";
+import { ComponentType, InteractionCallbackType, MessageFlags } from "lilybird";
 
 import type { IStaffEdge, MediaType } from "anilist";
 import type { Client, Interaction } from "lilybird";
@@ -18,6 +18,7 @@ export async function handleMangaSearchAutocomplete(client: Client, interaction:
     try {
         const data = await PageQuery.fetch();
 
+        // Show the auto complete options on the discord UI
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
             data: {
@@ -28,6 +29,7 @@ export async function handleMangaSearchAutocomplete(client: Client, interaction:
             }
         });
     } catch (_) {
+        // Show the auto complete options on the discord UI
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
             data: {
@@ -55,12 +57,14 @@ function getCreator(edges: Array<IStaffEdge>): string | null {
 }
 
 export async function handleMangaSearchInteraction(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
+    // Defer interaction
     await client.rest.createInteractionResponse(interaction.id, interaction.token, {
         type: InteractionCallbackType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
     });
 
     const mangaId = interaction.data.options?.[0].value;
     if (typeof mangaId !== "number") {
+        // Edit message with the error message
         await client.rest.editOriginalInteractionResponse(client.user.id, interaction.token, {
             content: "Something went terribly wrong, try again later."
         });
@@ -75,6 +79,7 @@ export async function handleMangaSearchInteraction(client: Client, interaction: 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (creator !== null && creator.length > 0) embed.fields = [ { name: "Author", value: `\`${creator}\`` }, ...embed.fields!];
 
+        // Edit message with the anilist information
         await client.rest.editOriginalInteractionResponse(client.user.id, interaction.token, {
             embeds: [embed],
             components: [
@@ -97,16 +102,17 @@ export async function handleMangaSearchInteraction(client: Client, interaction: 
             ]
         });
     } catch (err) {
+        // Edit message with the error information
         await client.rest.editOriginalInteractionResponse(client.user.id, interaction.token, { content: JSON.stringify(err) });
     }
 }
 
 export async function handleMangaSearchRelationsButton(client: Client, interaction: Interaction.GuildMessageComponentInteractionStructure): Promise<void> {
-    if (interaction.data.custom_id !== "manga_search_relations") return;
     if (typeof interaction.data.values === "undefined") return;
 
     const [id, type, authorId]: [string, MediaType, string] = <never>interaction.data.values[0].split("|");
     if (interaction.member.user?.id !== authorId) {
+        // Reply with an ephemeral error
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: { content: "You cannot do that", flags: MessageFlags.EPHEMERAL }
@@ -122,6 +128,7 @@ export async function handleMangaSearchRelationsButton(client: Client, interacti
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (creator !== null && creator.length > 0) embed.fields = [ { name: "Author", value: `\`${creator}\`` }, ...embed.fields!];
 
+        // Update the original message the component is attached to
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.UPDATE_MESSAGE,
             data: {
@@ -147,6 +154,7 @@ export async function handleMangaSearchRelationsButton(client: Client, interacti
             }
         });
     } catch (err) {
+        // Send a reply (new message) with an ephemeral error
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: { content: JSON.stringify(err), flags: MessageFlags.EPHEMERAL }

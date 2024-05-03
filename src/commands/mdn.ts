@@ -84,6 +84,7 @@ export async function handleMDNAutocomplete(client: Client, interaction: Interac
 
     populateCache(body.items);
 
+    // Show the auto complete options on the discord UI
     await client.rest.createInteractionResponse(interaction.id, interaction.token, {
         type: InteractionCallbackType.APPLICATION_COMMAND_AUTOCOMPLETE_RESULT,
         data: { choices: body.items.map((val) => ({ name: val.title, value: val.cacheId })) }
@@ -93,6 +94,7 @@ export async function handleMDNAutocomplete(client: Client, interaction: Interac
 export async function handleMDNInteraction(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
     const cacheId = interaction.data.options?.find((op) => op.name === "query")?.value;
     if (typeof cacheId === "undefined" || typeof cacheId !== "string") {
+        // Reply with an ephemeral error
         await client.rest.createInteractionResponse(interaction.id, interaction.token, {
             type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: { content: "Something went wrong", flags: MessageFlags.EPHEMERAL }
@@ -104,6 +106,7 @@ export async function handleMDNInteraction(client: Client, interaction: Interact
 
     const userId = interaction.data.options?.find((op) => op.name === "user")?.value;
 
+    // Reply with the result
     await client.rest.createInteractionResponse(interaction.id, interaction.token, {
         type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
