@@ -4,13 +4,13 @@ import { MediaQuery, PageQuery, anilistEmbed, getAnilistData } from "../utils/an
 import type { IStaffEdge, MediaType } from "anilist";
 import type { Client, Interaction } from "lilybird";
 
-export async function handleAnimeSearchAutocomplete(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
+export async function handleMangaSearchAutocomplete(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
     const name = interaction.data.options?.[0].value;
     if (typeof name !== "string") return;
 
     MediaQuery.arguments({
         search: name,
-        type: "ANIME"
+        type: "MANGA"
     });
 
     PageQuery.withMedia(MediaQuery);
@@ -54,13 +54,13 @@ function getCreator(edges: Array<IStaffEdge>): string | null {
     return null;
 }
 
-export async function handleAnimeSearchInteraction(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
+export async function handleMangaSearchInteraction(client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure): Promise<void> {
     await client.rest.createInteractionResponse(interaction.id, interaction.token, {
         type: InteractionCallbackType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
     });
 
-    const animeId = interaction.data.options?.[0].value;
-    if (typeof animeId !== "number") {
+    const mangaId = interaction.data.options?.[0].value;
+    if (typeof mangaId !== "number") {
         await client.rest.editOriginalInteractionResponse(client.user.id, interaction.token, {
             content: "Something went terribly wrong, try again later."
         });
@@ -68,7 +68,7 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
     }
 
     try {
-        const data = await getAnilistData(animeId, "ANIME");
+        const data = await getAnilistData(mangaId, "MANGA");
 
         const embed = anilistEmbed(data);
         const creator = getCreator(data.staff?.edges ?? []);
@@ -83,7 +83,7 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
                     components: [
                         {
                             type: ComponentType.StringSelect,
-                            custom_id: "anime_search_relations",
+                            custom_id: "manga_search_relations",
                             placeholder: "View Relations",
                             options: data.relations?.edges?.map((edge) => ({
                                 label: `${edge.relationType?.replaceAll("_", " ")} | ${
@@ -101,7 +101,8 @@ export async function handleAnimeSearchInteraction(client: Client, interaction: 
     }
 }
 
-export async function handleAnimeSearchRelationsButton(client: Client, interaction: Interaction.GuildMessageComponentInteractionStructure): Promise<void> {
+export async function handleMangaSearchRelationsButton(client: Client, interaction: Interaction.GuildMessageComponentInteractionStructure): Promise<void> {
+    if (interaction.data.custom_id !== "manga_search_relations") return;
     if (typeof interaction.data.values === "undefined") return;
 
     const [id, type, authorId]: [string, MediaType, string] = <never>interaction.data.values[0].split("|");
@@ -131,7 +132,7 @@ export async function handleAnimeSearchRelationsButton(client: Client, interacti
                         components: [
                             {
                                 type: ComponentType.StringSelect,
-                                custom_id: "anime_search_relations",
+                                custom_id: "manga_search_relations",
                                 placeholder: "View Relations",
                                 options: data.relations?.edges?.map((edge) => ({
                                     label: `${edge.relationType?.replaceAll("_", " ")} | ${

@@ -1,5 +1,6 @@
-import { ApplicationCommandOptionType, createClient, Intents, InteractionCallbackType, InteractionType } from "lilybird";
 import { handleAnimeSearchAutocomplete, handleAnimeSearchInteraction, handleAnimeSearchRelationsButton } from "./commands/anime.js";
+import { handleMangaSearchAutocomplete, handleMangaSearchInteraction, handleMangaSearchRelationsButton } from "./commands/manga.js";
+import { ApplicationCommandOptionType, createClient, Intents, InteractionCallbackType, InteractionType } from "lilybird";
 import { handleMDNAutocomplete, handleMDNInteraction } from "./commands/mdn.js";
 import { handleGithubURLInMessage } from "./commands/github.js";
 import { CommandManager } from "./handler.js";
@@ -50,6 +51,20 @@ handler.addCommand({
     ]
 }, async (client, interaction) => handleAnimeSearchInteraction(client, interaction));
 
+handler.addCommand({
+    name: "manga",
+    description: "Search for an manga",
+    options: [
+        {
+            type: ApplicationCommandOptionType.NUMBER,
+            name: "query",
+            description: "The manga to search",
+            required: true,
+            autocomplete: true
+        }
+    ]
+}, async (client, interaction) => handleMangaSearchInteraction(client, interaction));
+
 await createClient({
     token: process.env.TOKEN,
     intents: [
@@ -79,11 +94,23 @@ await createClient({
                         await handleAnimeSearchAutocomplete(client, payload);
                         break;
                     }
+                    case "manga": {
+                        await handleMangaSearchAutocomplete(client, payload);
+                    }
                 }
 
                 return;
             } else if (payload.type === InteractionType.MESSAGE_COMPONENT) {
-                await handleAnimeSearchRelationsButton(client, payload);
+                switch (payload.data.custom_id) {
+                    case "anime_search_relations": {
+                        await handleAnimeSearchRelationsButton(client, payload);
+                        break;
+                    }
+                    case "manga_search_relations": {
+                        await handleMangaSearchRelationsButton(client, payload);
+                        break;
+                    }
+                }
                 return;
             } else if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
 
