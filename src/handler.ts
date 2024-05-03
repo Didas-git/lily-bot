@@ -6,6 +6,7 @@ type InteractionExecutor = (client: Client, interaction: Interaction.GuildApplic
 
 export class CommandManager {
     public readonly commands: Record<string, InteractionExecutor> = {};
+    public readonly autoComplete: Record<string, InteractionExecutor> = {};
 
     readonly #commands: Array<ApplicationCommandJSONParams> = [];
     readonly #cachePath: string;
@@ -14,8 +15,13 @@ export class CommandManager {
         this.#cachePath = path;
     }
 
-    public addCommand(command: ApplicationCommandJSONParams, executor: InteractionExecutor): void {
-        this.commands[command.name] = executor;
+    public addCommand(
+        command: ApplicationCommandJSONParams,
+        commandExecutor: InteractionExecutor,
+        autoCompleteExecutor?: InteractionExecutor
+    ): void {
+        this.commands[command.name] = commandExecutor;
+        if (typeof autoCompleteExecutor !== "undefined") this.autoComplete[command.name] = autoCompleteExecutor;
         this.#commands.push(command);
     }
 
@@ -105,7 +111,7 @@ export class CommandManager {
         || differentDefaultPermissions;
     }
 
-    public async loadGlobal(client: Client): Promise<void> {
+    public async loadGlobalCommands(client: Client): Promise<void> {
         const file = Bun.file(this.#cachePath);
 
         if (!await file.exists()) {

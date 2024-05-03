@@ -18,52 +18,64 @@ handler.addCommand({
     });
 });
 
-handler.addCommand({
-    name: "mdn",
-    description: "Search the MDN documentation",
-    options: [
-        {
-            type: ApplicationCommandOptionType.STRING,
-            name: "query",
-            description: "Search query to pass to mdn",
-            required: true,
-            autocomplete: true
-        },
-        {
-            type: ApplicationCommandOptionType.USER,
-            name: "user",
-            description: "Ping a user along with the response"
-        }
-    ]
-}, async (client, interaction) => handleMDNInteraction(client, interaction));
+handler.addCommand(
+    {
+        name: "mdn",
+        description: "Search the MDN documentation",
+        options: [
+            {
+                type: ApplicationCommandOptionType.STRING,
+                name: "query",
+                description: "Search query to pass to mdn",
+                required: true,
+                autocomplete: true
+            },
+            {
+                type: ApplicationCommandOptionType.USER,
+                name: "user",
+                description: "Ping a user along with the response"
+            }
+        ]
+    },
+    handleMDNInteraction,
+    handleMDNAutocomplete
+);
 
-handler.addCommand({
-    name: "anime",
-    description: "Search for an anime",
-    options: [
-        {
-            type: ApplicationCommandOptionType.NUMBER,
-            name: "query",
-            description: "The anime to search",
-            required: true,
-            autocomplete: true
-        }
-    ]
-}, async (client, interaction) => handleAnimeSearchInteraction(client, interaction));
+handler.addCommand(
+    {
+        name: "anime",
+        description: "Search for an anime",
+        options: [
+            {
+                type: ApplicationCommandOptionType.NUMBER,
+                name: "query",
+                description: "The anime to search",
+                required: true,
+                autocomplete: true
+            }
+        ]
+    },
+    handleAnimeSearchInteraction,
+    handleAnimeSearchAutocomplete
+);
 
-handler.addCommand({
-    name: "manga",
-    description: "Search for an manga",
-    options: [
-        {
-            type: ApplicationCommandOptionType.NUMBER,
-            name: "query",
-            description: "The manga to search",
-            required: true,
-            autocomplete: true
-        }
-    ]
-}, async (client, interaction) => handleMangaSearchInteraction(client, interaction));
+handler.addCommand(
+    {
+        name: "manga",
+        description: "Search for an manga",
+        options: [
+            {
+                type: ApplicationCommandOptionType.NUMBER,
+                name: "query",
+                description: "The manga to search",
+                required: true,
+                autocomplete: true
+            }
+        ]
+    },
+    handleMangaSearchInteraction,
+    handleMangaSearchAutocomplete
+);
 
 await createClient({
     token: process.env.TOKEN,
@@ -75,7 +87,7 @@ await createClient({
     ],
     setup: async (client) => {
         console.log(`Logged in as: ${client.user.username} (${client.user.id})`);
-        await handler.loadGlobal(client);
+        await handler.loadGlobalCommands(client);
     },
     listeners: {
         messageCreate: async (client, payload) => {
@@ -84,23 +96,7 @@ await createClient({
         interactionCreate: async (client, payload) => {
             if (!("guild_id" in payload)) return;
 
-            if (payload.type === InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE) {
-                switch (payload.data.name) {
-                    case "mdn": {
-                        await handleMDNAutocomplete(client, payload);
-                        break;
-                    }
-                    case "anime": {
-                        await handleAnimeSearchAutocomplete(client, payload);
-                        break;
-                    }
-                    case "manga": {
-                        await handleMangaSearchAutocomplete(client, payload);
-                    }
-                }
-
-                return;
-            } else if (payload.type === InteractionType.MESSAGE_COMPONENT) {
+            if (payload.type === InteractionType.MESSAGE_COMPONENT) {
                 switch (payload.data.custom_id) {
                     case "anime_search_relations": {
                         await handleAnimeSearchRelationsButton(client, payload);
@@ -112,9 +108,11 @@ await createClient({
                     }
                 }
                 return;
-            } else if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
+            } else if (payload.type === InteractionType.APPLICATION_COMMAND_AUTOCOMPLETE)
+                return handler.autoComplete[payload.data.name](client, payload);
+            else if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
 
-            await handler.commands[payload.data.name](client, payload);
+            return handler.commands[payload.data.name](client, payload);
         }
     }
 });
