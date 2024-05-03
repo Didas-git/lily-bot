@@ -1,17 +1,22 @@
+import type { Awaitable, Interaction } from "lilybird";
 import { ApplicationCommandOptionType, type ApplicationCommand, type Client } from "lilybird";
 
 type ApplicationCommandJSONParams = ApplicationCommand.Create.ApplicationCommandJSONParams;
+type InteractionExecutor = (client: Client, interaction: Interaction.GuildApplicationCommandInteractionStructure) => Awaitable<unknown>;
 
 export class CommandManager {
-    readonly #commands = new Map<string, ApplicationCommandJSONParams>();
+    public readonly commands: Record<string, InteractionExecutor> = {};
+
+    readonly #commands: Array<ApplicationCommandJSONParams> = [];
     readonly #cachePath: string;
 
     public constructor(path: string = `${import.meta.dir}/../lily-cache/commands.json`) {
         this.#cachePath = path;
     }
 
-    public addCommand(command: ApplicationCommandJSONParams): void {
-        this.#commands.set(command.name, command);
+    public addCommand(command: ApplicationCommandJSONParams, executor: InteractionExecutor): void {
+        this.commands[command.name] = executor;
+        this.#commands.push(command);
     }
 
     #differOption(
@@ -102,20 +107,19 @@ export class CommandManager {
 
     public async loadGlobal(client: Client): Promise<void> {
         const file = Bun.file(this.#cachePath);
-        const commands = [...this.#commands.values()];
 
         if (!await file.exists()) {
             console.log("Publish all commands & creating cache");
-            await Bun.write(file, JSON.stringify(commands));
-            await client.rest.bulkOverwriteGlobalApplicationCommand(client.user.id, commands);
+            await Bun.write(file, JSON.stringify(this.#commands));
+            await client.rest.bulkOverwriteGlobalApplicationCommand(client.user.id, this.#commands);
             return;
         }
 
         const cachedCommands = await file.json() as Array<ApplicationCommandJSONParams>;
         const toPublish: Array<ApplicationCommandJSONParams> = [];
 
-        for (let i = 0, { length } = commands; i < length; i++) {
-            const command = commands[i];
+        for (let i = 0, { length } = this.#commands; i < length; i++) {
+            const command = this.#commands[i];
             const cachedIndex = cachedCommands.findIndex((c) => c.name === command.name);
             if (cachedIndex === -1) {
                 toPublish.push(command);
@@ -134,6 +138,8 @@ export class CommandManager {
         }
 
         console.log("Publishing changed commands", toPublish);
+        // For some reason using bulkOverwriteGlobalApplicationCommand with only a set of commands deletes the ones not included...
+        // I did not find any discord documentation on this but its the behavior i observed.
         // eslint-disable-next-line no-await-in-loop
         for (let i = 0, { length } = toPublish; i < length; i++) await client.rest.createGlobalApplicationCommand(client.user.id, toPublish[i]);
         await Bun.write(file, JSON.stringify(cachedCommands));

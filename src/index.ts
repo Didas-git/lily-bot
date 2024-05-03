@@ -8,6 +8,12 @@ const handler = new CommandManager();
 handler.addCommand({
     name: "ping",
     description: "pong"
+}, async (client, interaction) => {
+    const { ws, rest } = await client.ping();
+    return client.rest.createInteractionResponse(interaction.id, interaction.token, {
+        type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: { content: `🏓 WebSocket: \`${Math.round(ws)}ms\` | Rest: \`${Math.round(rest)}ms\`` }
+    });
 });
 
 handler.addCommand({
@@ -27,7 +33,7 @@ handler.addCommand({
             description: "Ping a user along with the response"
         }
     ]
-});
+}, async (client, interaction) => handleMDNInteraction(client, interaction));
 
 await createClient({
     token: process.env.TOKEN,
@@ -55,20 +61,7 @@ await createClient({
 
             if (payload.type !== InteractionType.APPLICATION_COMMAND) return;
 
-            switch (payload.data.name) {
-                case "ping": {
-                    const { ws, rest } = await client.ping();
-                    return client.rest.createInteractionResponse(payload.id, payload.token, {
-                        type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
-                        data: { content: `🏓 WebSocket: \`${Math.round(ws)}ms\` | Rest: \`${Math.round(rest)}ms\`` }
-                    });
-                }
-                case "mdn": {
-                    return handleMDNInteraction(client, payload);
-                }
-            }
-
-            return undefined;
+            await handler.commands[payload.data.name](client, payload);
         }
     }
 });
