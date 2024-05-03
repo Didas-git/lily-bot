@@ -2,7 +2,7 @@ import { ApplicationCommandOptionType, type ApplicationCommand, type Client } fr
 
 type ApplicationCommandJSONParams = ApplicationCommand.Create.ApplicationCommandJSONParams;
 
-export class Handler {
+export class CommandManager {
     readonly #commands = new Map<string, ApplicationCommandJSONParams>();
     readonly #cachePath: string;
 
@@ -134,7 +134,8 @@ export class Handler {
         }
 
         console.log("Publishing changed commands", toPublish);
+        // eslint-disable-next-line no-await-in-loop
+        for (let i = 0, { length } = toPublish; i < length; i++) await client.rest.createGlobalApplicationCommand(client.user.id, toPublish[i]);
         await Bun.write(file, JSON.stringify(cachedCommands));
-        await client.rest.bulkOverwriteGlobalApplicationCommand(client.user.id, toPublish);
     }
 }
