@@ -29,13 +29,13 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
     const match = matchGithubURL(message.content);
     if (match === null) return;
 
-    const { repository, path, first_line, final_line, index, lastIndex } = match;
+    const { repository, path, firstLine, finalLine, index, lastIndex } = match;
     const extensionStart = path.lastIndexOf(".") + 1;
     let extension = path.slice(extensionStart);
     if (extension === "zig") extension = "rs";
 
-    const firstLineNumber = parseInt(first_line);
-    const finalLineNumber = parseInt(final_line);
+    const firstLineNumber = parseInt(firstLine);
+    const finalLineNumber = parseInt(finalLine);
 
     const contentUrl = `https://raw.githubusercontent.com/${repository}/${path}`;
     const response = await fetch(contentUrl);
@@ -98,6 +98,6 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
     });
 
     // Delete the message if it contains only a github url
-    if (index === 0 && lastIndex === message.content.length - 1)
+    if (index - 18 <= 0 && lastIndex === message.content.length - 1)
         await client.rest.deleteMessage(message.channel_id, message.id, "Messaged replaced by embed with code");
 }
