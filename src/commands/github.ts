@@ -1,8 +1,7 @@
 import { ButtonStyle, CDN, ComponentType } from "lilybird";
 
 import type { User, Client, Message } from "lilybird";
-
-const GITHUB_LINE_URL_REGEX = /https?:\/\/github\.com\/(?<repository>[a-zA-Z0-9_-]+\/[A-Za-z0-9_.-]+)\/blob\/(?<path>.+?)#L(?<first_line>\d+)[-~]?L?(?<final_line>\d*)/;
+import { matchGithubURL } from "../utils/github-url-matcher.js";
 
 function getStartingPad(line: string): number {
     let i = 0;
@@ -15,21 +14,28 @@ function calculateAvatarIndex(user: User.Structure): string {
     return (+user.discriminator % 5).toString();
 }
 
+function trimDescription(text: string, limit: number): { text: string, extra: number } {
+    if (text.length <= limit) return { text, extra: 0 };
+    const indexToSliceAt = text.lastIndexOf("\n", limit);
+    const slicedText = text.slice(0, indexToSliceAt + 1);
+    const extraCharacters = text.length - slicedText.length;
+
+    return { text: slicedText, extra: extraCharacters };
+}
+
 export async function handleGithubURLInMessage(client: Client, message: Message.GuildStructure): Promise<void> {
     if (typeof message.content === "undefined") return;
 
-    const match = GITHUB_LINE_URL_REGEX.exec(message.content);
+    const match = matchGithubURL(message.content);
     if (match === null) return;
-    const { groups } = match;
-    if (typeof groups === "undefined") return;
 
-    const { repository, path, first_line, final_line } = groups;
+    const { repository, path, first_line, final_line, index, lastIndex } = match;
     const extensionStart = path.lastIndexOf(".") + 1;
     let extension = path.slice(extensionStart);
     if (extension === "zig") extension = "rs";
 
     const firstLineNumber = parseInt(first_line);
-    const finalLineNumber = final_line.length > 0 ? parseInt(final_line) : firstLineNumber;
+    const finalLineNumber = parseInt(final_line);
 
     const contentUrl = `https://raw.githubusercontent.com/${repository}/${path}`;
     const response = await fetch(contentUrl);
@@ -37,22 +43,20 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
 
     const content = await response.text();
     const lines = content.split("\n");
+    const initialIndentation = getStartingPad(lines[firstLineNumber - 1]);
 
     let text = "";
+    if (firstLineNumber !== finalLineNumber) {
+        const length = finalLineNumber > lines.length ? lines.length : finalLineNumber + 1;
+        for (let i = firstLineNumber - 1; i < length; i++) {
+            const line = lines[i].slice(initialIndentation);
+            text += `${line}\n`;
+        }
+    } else text = `${lines[firstLineNumber - 1].slice(initialIndentation)}\n`;
 
-    const length = finalLineNumber > lines.length ? lines.length : finalLineNumber + 1;
-    const initialIndentation = getStartingPad(lines[firstLineNumber - 1]);
-    for (let i = firstLineNumber - 1; i < length; i++) {
-        const line = lines[i].slice(initialIndentation);
-        text += `${line}\n`;
-    }
-
-    const baseLength = 8 + extension.length;
-    const descriptionLimit = 4096 - baseLength - 16;
-
-    const indexToSliceAt = text.lastIndexOf("\n", descriptionLimit);
-    const slicedText = text.slice(0, indexToSliceAt + 1);
-    const extraCharacters = text.length - slicedText.length;
+    const baseLength = 24 + extension.length;
+    const descriptionLimit = 4096 - baseLength;
+    const { text: slicedText, extra: extraCharacters } = trimDescription(text, descriptionLimit);
 
     const fileStart = path.lastIndexOf("/") + 1;
     const fileName = path.slice(fileStart);
@@ -92,4 +96,8 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
             }
         ]
     });
+
+    // Delete the message if it contains only a github url
+    if (index === 0 && lastIndex === message.content.length - 1)
+        await client.rest.deleteMessage(message.channel_id, message.id, "Messaged replaced by embed with code");
 }
