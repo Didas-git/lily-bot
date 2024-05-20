@@ -45,6 +45,7 @@ export class CommandManager {
                     for (let i = 0, { length } = incoming.options; i < length; i++) {
                         const option = incoming.options[i];
                         const cachedIndex = cached.options.findIndex((op) => op.name === option.name);
+                        if (cachedIndex === -1) return true;
 
                         if (!this.#differOption(option, cached.options[cachedIndex])) continue;
                         return true;
@@ -97,6 +98,7 @@ export class CommandManager {
             for (let i = 0, { length } = incoming.options; i < length; i++) {
                 const option = incoming.options[i];
                 const cachedIndex = cached.options.findIndex((op) => op.name === option.name);
+                if (cachedIndex === -1) return true;
 
                 if (!this.#differOption(option, cached.options[cachedIndex])) continue;
                 return true;
@@ -144,8 +146,7 @@ export class CommandManager {
         }
 
         console.log("Publishing changed commands", toPublish);
-        // For some reason using bulkOverwriteGlobalApplicationCommand with only a set of commands deletes the ones not included...
-        // I did not find any discord documentation on this but its the behavior i observed.
+        // Using bulkOverwriteGlobalApplicationCommand with only a set of commands deletes the ones not included in that set
         // eslint-disable-next-line no-await-in-loop
         for (let i = 0, { length } = toPublish; i < length; i++) await client.rest.createGlobalApplicationCommand(client.user.id, toPublish[i]);
         await Bun.write(file, JSON.stringify(cachedCommands));
