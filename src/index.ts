@@ -1,6 +1,6 @@
+import { ActivityType, ApplicationCommandOptionType, createClient, Intents, InteractionCallbackType, InteractionType } from "lilybird";
 import { handleAnimeSearchAutocomplete, handleAnimeSearchInteraction, handleAnimeSearchRelationsButton } from "./commands/anime.js";
 import { handleMangaSearchAutocomplete, handleMangaSearchInteraction, handleMangaSearchRelationsButton } from "./commands/manga.js";
-import { ApplicationCommandOptionType, createClient, Intents, InteractionCallbackType, InteractionType } from "lilybird";
 import { handleMDNAutocomplete, handleMDNInteraction } from "./commands/mdn.js";
 import { handleGithubURLInMessage } from "./commands/github.js";
 import { CommandManager } from "./handler.js";
@@ -85,6 +85,17 @@ await createClient({
         Intents.GUILD_MEMBERS,
         Intents.GUILDS
     ],
+    presence: {
+        since: null,
+        activities: [
+            {
+                name: "Lilybird",
+                type: ActivityType.Watching
+            }
+        ],
+        status: "idle",
+        afk: false
+    },
     setup: async (client) => {
         console.log(`Logged in as: ${client.user.username} (${client.user.id})`);
         await handler.loadGlobalCommands(client);
