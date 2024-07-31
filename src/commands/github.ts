@@ -1,7 +1,7 @@
-import { ButtonStyle, CDN, ComponentType } from "lilybird";
-
-import type { User, Client, Message } from "lilybird";
 import { matchGithubURL } from "../utils/github-url-matcher.js";
+import { ButtonStyle, ComponentType } from "lilybird";
+
+import type { Client, Message } from "lilybird";
 
 function getStartingPad(line: string): number {
     let i = 0;
@@ -9,10 +9,10 @@ function getStartingPad(line: string): number {
     return i;
 }
 
-function calculateAvatarIndex(user: User.Structure): string {
-    if (user.discriminator === "0") return ((BigInt(user.id) >> 22n) % 6n).toString();
-    return (+user.discriminator % 5).toString();
-}
+// function calculateAvatarIndex(user: User.Structure): string {
+//     if (user.discriminator === "0") return ((BigInt(user.id) >> 22n) % 6n).toString();
+//     return (+user.discriminator % 5).toString();
+// }
 
 function trimDescription(text: string, limit: number): { text: string, extra: number } {
     if (text.length <= limit) return { text, extra: 0 };
@@ -62,26 +62,11 @@ export async function handleGithubURLInMessage(client: Client, message: Message.
     const fileName = path.slice(fileStart);
 
     await client.rest.createMessage(message.channel_id, {
-        embeds: [
-            {
-                color: 0xad9ee7,
-                author: {
-                    name: message.author.username,
-                    icon_url: message.author.avatar === null
-                        ? CDN.defaultUserAvatarURL(calculateAvatarIndex(message.author))
-                        : CDN.userAvatarURL(message.author.id, message.author.avatar)
-                },
-                title: `__**${fileName}**__ - Line: *${firstLineNumber !== finalLineNumber ? `${firstLineNumber} - ${finalLineNumber}` : firstLineNumber}*`,
-                description: `\`\`\`${extension}\n${extraCharacters > 0 ? `${slicedText}\n(more ${extraCharacters})\n` : slicedText}\`\`\``
-            }
-        ],
-        // In case you want to use content instead of embed remember to change the 4096 in the descriptionLimit to 1900
-        // (base 2000 - 100 reserved for the path+lines at the beginning)
-        // content: `__**${fileName}**__ - Line: *${
-        //     firstLineNumber !== secondLineNumber ? `${firstLineNumber} - ${secondLineNumber}` : firstLineNumber
-        // }*\n\`\`\`${extension}\n${
-        //     extraCharacters > 0 ? `${slicedText}(more ${extraCharacters})\n` : slicedText
-        // }\`\`\``,
+        content: `__**${fileName}**__ - Line: *${
+            firstLineNumber !== finalLineNumber ? `${firstLineNumber} - ${finalLineNumber}` : firstLineNumber
+        }*\n\`\`\`${extension}\n${
+            extraCharacters > 0 ? `${slicedText}(more ${extraCharacters})\n` : slicedText
+        }\`\`\``,
         components: [
             {
                 type: ComponentType.ActionRow,
